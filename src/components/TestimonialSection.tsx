@@ -13,7 +13,7 @@ const TestimonialSection = () => {
       rating: 5,
       comment: "Pelayanan sangat memuaskan! Logo yang dibuat untuk warung makan saya sangat profesional dan menarik pelanggan.",
       date: "2024-01-15",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
     },
     {
       id: 2,
@@ -31,7 +31,7 @@ const TestimonialSection = () => {
       rating: 5,
       comment: "Desain spanduk untuk toko saya keren banget! Harga terjangkau dan kualitas premium. Recommended!",
       date: "2024-01-22",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face"
     },
     {
       id: 4,
@@ -98,6 +98,24 @@ const TestimonialSection = () => {
       rating: 5,
       comment: "Jasa aransemen lagu untuk cafe saya sangat bagus! Suasana jadi lebih menarik dan pelanggan betah berlama-lama.",
       date: "2024-02-10",
+      avatar: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop&crop=face"
+    },
+    {
+      id: 11,
+      name: "Fajar Nugroho",
+      location: "Solo",
+      rating: 5,
+      comment: "Desain logo untuk startup saya sangat kreatif dan mencerminkan visi perusahaan. Highly recommended!",
+      date: "2024-02-12",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"
+    },
+    {
+      id: 12,
+      name: "Indira Siska",
+      location: "Denpasar",
+      rating: 5,
+      comment: "Spanduk promosi untuk acara saya sangat eye-catching. Banyak yang bertanya dimana bikin spanduknya!",
+      date: "2024-02-14",
       avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b550?w=100&h=100&fit=crop&crop=face"
     }
   ];
@@ -109,21 +127,23 @@ const TestimonialSection = () => {
   };
 
   const renderTestimonial = (testimonial: any) => (
-    <div key={testimonial.id} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+    <div key={testimonial.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
       <div className="flex items-start space-x-3">
         <img
           src={testimonial.avatar}
           alt={testimonial.name}
-          className="w-12 h-12 rounded-full object-cover"
+          className="w-12 h-12 rounded-full object-cover border-2 border-gray-100"
         />
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
-            <h4 className="font-semibold text-gray-800">{testimonial.name}</h4>
-            <span className="text-xs text-gray-500">
+            <div>
+              <h4 className="font-semibold text-gray-800 text-sm">{testimonial.name}</h4>
+              <p className="text-xs text-gray-500">{testimonial.location}</p>
+            </div>
+            <span className="text-xs text-gray-400">
               {new Date(testimonial.date).toLocaleDateString('id-ID')}
             </span>
           </div>
-          <p className="text-sm text-gray-600 mb-2">{testimonial.location}</p>
           <div className="flex items-center space-x-1 mb-2">
             {renderStars(testimonial.rating)}
           </div>
@@ -134,37 +154,37 @@ const TestimonialSection = () => {
   );
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-4 flex items-center space-x-2">
-        <Star className="w-6 h-6 text-yellow-400" />
-        <span>Testimoni Pelanggan</span>
-      </h2>
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="flex items-center space-x-2 mb-6">
+        <Star className="w-6 h-6 text-yellow-400 fill-current" />
+        <h2 className="text-xl font-bold text-gray-800">Testimoni Pelanggan</h2>
+      </div>
       
-      <div className="space-y-4 mb-4">
+      <div className="space-y-4 mb-6">
         {testimonials.map(renderTestimonial)}
       </div>
 
       <button
         onClick={() => setShowAllTestimonials(true)}
-        className="w-full text-blue-600 hover:text-blue-800 font-medium text-sm py-2 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
+        className="w-full bg-gradient-to-r from-blue-50 to-purple-50 text-blue-600 hover:from-blue-100 hover:to-purple-100 font-semibold text-sm py-3 px-4 border border-blue-200 rounded-xl transition-all duration-300"
       >
         Lihat Komentar Lainnya ({allTestimonials.length - 5} komentar)
       </button>
 
       {/* All Testimonials Modal */}
       {showAllTestimonials && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden">
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-semibold">Semua Testimoni Pelanggan</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-800">Semua Testimoni Pelanggan</h3>
               <button
                 onClick={() => setShowAllTestimonials(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="text-gray-500 hover:text-gray-700 transition-colors text-2xl"
               >
-                ✕
+                ×
               </button>
             </div>
-            <div className="p-4 overflow-y-auto max-h-[60vh] space-y-4">
+            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
               {allTestimonials.map(renderTestimonial)}
             </div>
           </div>

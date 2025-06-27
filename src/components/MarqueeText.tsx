@@ -10,7 +10,7 @@ const MarqueeText = () => {
   }, []);
 
   return (
-    <div className="bg-blue-600 text-white py-2 overflow-hidden">
+    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 overflow-hidden">
       <div className="animate-marquee whitespace-nowrap">
         <span className="text-sm font-medium px-4">
           ⭐ {text} ⭐

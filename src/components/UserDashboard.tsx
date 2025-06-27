@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ShoppingBag, User, Star, MessageSquare, FileText } from 'lucide-react';
+import { LogOut, ShoppingBag, User, Star, MessageSquare, FileText, Palette, Megaphone, Coffee, Heart, Smartphone, Laptop, Globe, Video, Camera, Music } from 'lucide-react';
 import MarqueeText from './MarqueeText';
 import PromoPopup from './PromoPopup';
 import TestimonialSection from './TestimonialSection';
+import LiveChat from './LiveChat';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('services');
@@ -17,16 +18,16 @@ const UserDashboard = () => {
   const navigate = useNavigate();
 
   const services = [
-    { id: 1, name: 'Bikin Logo', icon: '🎨' },
-    { id: 2, name: 'Desain Spanduk', icon: '🎯' },
-    { id: 3, name: 'Desain Menu Cafe', icon: '📋' },
-    { id: 4, name: 'Kartu Undangan', icon: '💌' },
-    { id: 5, name: 'Buku Tamu Digital', icon: '📱' },
-    { id: 6, name: 'Bikin Aplikasi', icon: '💻' },
-    { id: 7, name: 'Hosting Website', icon: '🌐' },
-    { id: 8, name: 'Edit Video Prewedding', icon: '🎬' },
-    { id: 9, name: 'Edit Foto & Video', icon: '📸' },
-    { id: 10, name: 'Jasa Lagu & Aransemen', icon: '🎵' }
+    { id: 1, name: 'Bikin\nLogo', icon: Palette, color: 'from-pink-500 to-rose-500' },
+    { id: 2, name: 'Desain\nSpanduk', icon: Megaphone, color: 'from-blue-500 to-cyan-500' },
+    { id: 3, name: 'Desain Menu\nCafe', icon: Coffee, color: 'from-amber-500 to-yellow-500' },
+    { id: 4, name: 'Kartu\nUndangan', icon: Heart, color: 'from-red-500 to-pink-500' },
+    { id: 5, name: 'Buku Tamu\nDigital', icon: Smartphone, color: 'from-green-500 to-emerald-500' },
+    { id: 6, name: 'Bikin\nAplikasi', icon: Laptop, color: 'from-purple-500 to-indigo-500' },
+    { id: 7, name: 'Hosting\nWebsite', icon: Globe, color: 'from-teal-500 to-cyan-500' },
+    { id: 8, name: 'Edit Video\nPrewedding', icon: Video, color: 'from-orange-500 to-red-500' },
+    { id: 9, name: 'Edit Foto\n& Video', icon: Camera, color: 'from-violet-500 to-purple-500' },
+    { id: 10, name: 'Jasa Lagu &\nAransemen', icon: Music, color: 'from-indigo-500 to-blue-500' }
   ];
 
   useEffect(() => {
@@ -42,7 +43,7 @@ const UserDashboard = () => {
   };
 
   const handleServiceClick = (serviceName: string) => {
-    setSelectedService(serviceName);
+    setSelectedService(serviceName.replace('\n', ' '));
     setShowOrderForm(true);
   };
 
@@ -93,23 +94,31 @@ const UserDashboard = () => {
           <head>
             <title>Invoice - ${invoice.invoiceNumber}</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 20px; }
-              .header { text-align: center; margin-bottom: 30px; }
+              body { font-family: Arial, sans-serif; padding: 20px; background: #f8fafc; }
+              .invoice-container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+              .header h1 { color: #1e293b; margin-bottom: 5px; }
+              .header h2 { color: #64748b; }
               .invoice-details { margin-bottom: 20px; }
-              .total { font-size: 18px; font-weight: bold; color: #2563eb; }
+              .invoice-details p { margin: 10px 0; }
+              .total { font-size: 24px; font-weight: bold; color: #059669; text-align: center; background: #ecfdf5; padding: 15px; border-radius: 8px; }
             </style>
           </head>
           <body>
-            <div class="header">
-              <h1>ARVIN PROFESSIONAL EDITING</h1>
-              <h2>INVOICE</h2>
-            </div>
-            <div class="invoice-details">
-              <p><strong>Nomor Invoice:</strong> ${invoice.invoiceNumber}</p>
-              <p><strong>Nama:</strong> ${invoice.userName}</p>
-              <p><strong>Jenis Jasa:</strong> ${invoice.service}</p>
-              <p><strong>Tanggal:</strong> ${new Date(invoice.date).toLocaleDateString('id-ID')}</p>
-              <p class="total"><strong>Total Harga: Rp ${parseInt(invoice.price).toLocaleString('id-ID')}</strong></p>
+            <div class="invoice-container">
+              <div class="header">
+                <h1>ARVIN PROFESSIONAL EDITING</h1>
+                <h2>INVOICE</h2>
+              </div>
+              <div class="invoice-details">
+                <p><strong>Nomor Invoice:</strong> ${invoice.invoiceNumber}</p>
+                <p><strong>Nama:</strong> ${invoice.userName}</p>
+                <p><strong>Jenis Jasa:</strong> ${invoice.service}</p>
+                <p><strong>Tanggal:</strong> ${new Date(invoice.date).toLocaleDateString('id-ID')}</p>
+              </div>
+              <div class="total">
+                <strong>Total Harga: Rp ${parseInt(invoice.price).toLocaleString('id-ID')}</strong>
+              </div>
             </div>
           </body>
         </html>
@@ -118,23 +127,27 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <PromoPopup />
       
       {/* Header */}
-      <div className="bg-white shadow-md p-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">ARVIN PROFESSIONAL</h1>
-            <p className="text-gray-600">Selamat datang, {currentUser?.fullName}</p>
+      <div className="bg-white shadow-lg">
+        <div className="px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                ARVIN PROFESSIONAL
+              </h1>
+              <p className="text-gray-600 mt-1">Halo, {currentUser?.fullName}!</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 text-red-500 hover:text-red-700 transition-colors bg-red-50 px-3 py-2 rounded-lg"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-sm font-medium">Keluar</span>
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center space-x-2 text-red-600 hover:text-red-800 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            <span>Keluar</span>
-          </button>
         </div>
       </div>
 
@@ -142,47 +155,50 @@ const UserDashboard = () => {
       <MarqueeText />
 
       {/* Navigation */}
-      <div className="bg-white border-b">
-        <div className="flex space-x-8 px-4">
+      <div className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="flex overflow-x-auto px-4 py-2 space-x-1">
           {[
             { id: 'services', label: 'Layanan', icon: ShoppingBag },
-            { id: 'orders', label: 'Pesanan Saya', icon: FileText },
+            { id: 'orders', label: 'Pesanan', icon: FileText },
             { id: 'profile', label: 'Profil', icon: User },
-            { id: 'chat', label: 'Live Chat', icon: MessageSquare }
+            { id: 'chat', label: 'Chat', icon: MessageSquare }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium ${
+              className={`flex items-center space-x-2 px-4 py-3 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg'
+                  : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <tab.icon className="w-5 h-5" />
-              <span>{tab.label}</span>
+              <tab.icon className="w-4 h-4" />
+              <span className="text-sm">{tab.label}</span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4">
+      <div className="p-4 pb-20">
         {activeTab === 'services' && (
-          <div>
+          <div className="space-y-6">
             {/* Services Grid */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-6">Pilih Layanan</h2>
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Pilih Layanan Kami</h2>
               <div className="grid grid-cols-2 gap-4">
                 {services.map((service) => (
                   <button
                     key={service.id}
                     onClick={() => handleServiceClick(service.name)}
-                    className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:shadow-md transition-all duration-300 text-center group"
+                    className="service-card group relative overflow-hidden"
                   >
-                    <div className="text-3xl mb-2">{service.icon}</div>
-                    <div className="text-sm font-medium text-gray-700 group-hover:text-blue-600">
-                      {service.name}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-10 group-hover:opacity-20 transition-opacity duration-300`}></div>
+                    <div className="relative z-10 flex flex-col items-center text-center h-24 justify-center">
+                      <service.icon className={`w-8 h-8 mb-2 bg-gradient-to-br ${service.color} bg-clip-text text-transparent`} />
+                      <span className="text-xs font-semibold text-gray-700 leading-tight whitespace-pre-line">
+                        {service.name}
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -195,22 +211,25 @@ const UserDashboard = () => {
         )}
 
         {activeTab === 'orders' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Pesanan Saya</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-6">Pesanan Saya</h2>
             {userOrders.length === 0 ? (
-              <p className="text-gray-500">Belum ada pesanan.</p>
+              <div className="text-center py-12">
+                <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Belum ada pesanan</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {userOrders.map((order: any) => (
-                  <div key={order.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={order.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-medium">{order.service}</h3>
-                        <p className="text-xs text-gray-400">
+                        <h3 className="font-semibold text-gray-800">{order.service}</h3>
+                        <p className="text-xs text-gray-500 mt-1">
                           {new Date(order.createdAt).toLocaleDateString('id-ID')}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         order.status === 'Menunggu' ? 'bg-yellow-100 text-yellow-800' :
                         order.status === 'Sedang Dikerjakan' ? 'bg-blue-100 text-blue-800' :
                         order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
@@ -219,16 +238,16 @@ const UserDashboard = () => {
                         {order.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700 mb-2">{order.description}</p>
+                    <p className="text-sm text-gray-700 mb-3">{order.description}</p>
                     {order.price && (
-                      <p className="text-sm font-medium text-green-600 mb-2">
+                      <p className="text-sm font-bold text-green-600 mb-3">
                         Harga: Rp {parseInt(order.price).toLocaleString('id-ID')}
                       </p>
                     )}
                     {order.status === 'Selesai' && (
                       <button
                         onClick={() => viewInvoice(order.id)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+                        className="modern-button text-sm py-2 px-4"
                       >
                         Lihat Invoice
                       </button>
@@ -241,18 +260,22 @@ const UserDashboard = () => {
         )}
 
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Profil Saya</h2>
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-6">Profil Saya</h2>
             <div className="flex items-center space-x-4 mb-6">
-              {currentUser?.profilePhoto && (
+              {currentUser?.profilePhoto ? (
                 <img
                   src={currentUser.profilePhoto}
                   alt={currentUser.fullName}
-                  className="w-16 h-16 rounded-full object-cover"
+                  className="w-20 h-20 rounded-full object-cover border-4 border-blue-100"
                 />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <User className="w-10 h-10 text-white" />
+                </div>
               )}
               <div>
-                <h3 className="text-lg font-medium">{currentUser?.fullName}</h3>
+                <h3 className="text-lg font-semibold text-gray-800">{currentUser?.fullName}</h3>
                 <p className="text-gray-600">{currentUser?.email}</p>
               </div>
             </div>
@@ -260,37 +283,32 @@ const UserDashboard = () => {
         )}
 
         {activeTab === 'chat' && (
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold mb-4">Live Chat dengan Admin</h2>
-            <div className="bg-gray-50 rounded-lg p-4 h-96 flex items-center justify-center">
-              <p className="text-gray-500">Fitur live chat akan segera hadir...</p>
-            </div>
-          </div>
+          <LiveChat />
         )}
       </div>
 
       {/* Order Form Modal */}
       {showOrderForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h3 className="text-lg font-semibold mb-4">Pesan {selectedService}</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">Pesan {selectedService}</h3>
             <div className="space-y-4">
               <textarea
-                placeholder="Deskripsi kebutuhan Anda..."
+                placeholder="Jelaskan kebutuhan Anda dengan detail..."
                 value={orderDescription}
                 onChange={(e) => setOrderDescription(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full p-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 rows={4}
               />
               <input
                 type="file"
                 onChange={(e) => setOrderFile(e.target.files?.[0] || null)}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <button
                   onClick={handleOrderSubmit}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                  className="flex-1 modern-button"
                 >
                   Kirim Pesanan
                 </button>
@@ -301,7 +319,7 @@ const UserDashboard = () => {
                     setOrderFile(null);
                     setSelectedService('');
                   }}
-                  className="flex-1 bg-gray-500 text-white py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                  className="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-gray-600 transition-colors"
                 >
                   Batal
                 </button>
