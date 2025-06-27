@@ -18,9 +18,25 @@ const LiveChat = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-refresh messages every 2 seconds to get admin replies
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadMessages();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   const loadMessages = () => {
     const savedMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
-    setMessages(savedMessages);
+    const currentUserEmail = JSON.parse(localStorage.getItem('currentUser') || '{}').email;
+    
+    // Filter messages for current user and admin replies to this user
+    const userMessages = savedMessages.filter(msg => 
+      msg.senderEmail === currentUserEmail || 
+      (msg.isAdmin && msg.replyTo === currentUserEmail)
+    );
+    
+    setMessages(userMessages);
   };
 
   const scrollToBottom = () => {
@@ -39,26 +55,13 @@ const LiveChat = () => {
       isAdmin: false
     };
 
-    const updatedMessages = [...messages, message];
-    setMessages(updatedMessages);
+    const allMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
+    const updatedMessages = [...allMessages, message];
     localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
+    
+    // Update local state for immediate display
+    setMessages(prev => [...prev, message]);
     setNewMessage('');
-
-    // Simulate admin response (in real app, this would come from backend)
-    setTimeout(() => {
-      const adminResponse = {
-        id: Date.now() + 1,
-        text: 'Terima kasih telah menghubungi kami! Tim admin akan segera merespons pesan Anda.',
-        sender: 'Admin ARVIN',
-        senderEmail: 'admin@arvin.com',
-        timestamp: new Date().toISOString(),
-        isAdmin: true
-      };
-
-      const newUpdatedMessages = [...updatedMessages, adminResponse];
-      setMessages(newUpdatedMessages);
-      localStorage.setItem('chatMessages', JSON.stringify(newUpdatedMessages));
-    }, 1000);
   };
 
   const handleKeyPress = (e) => {
