@@ -35,7 +35,7 @@ const UserDashboard = () => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     setCurrentUser(user);
     if (user.email) {
-      loadUserOrders(user.email); // Fix: ensure email is passed as string
+      loadUserOrders(user.email);
     }
   }, []);
 
@@ -93,7 +93,7 @@ const UserDashboard = () => {
   const viewInvoice = async (orderId: number) => {
     try {
       const invoice = await getInvoiceByOrderId(orderId);
-      const order = userOrders.find(o => o.id === orderId);
+      const order = userOrders.find((o: any) => o.id === orderId);
       
       if (invoice && order) {
         const invoiceWindow = window.open('', '_blank');
