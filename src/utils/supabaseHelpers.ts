@@ -150,15 +150,23 @@ export const createChatMessage = async (messageData: any) => {
   return data;
 };
 
-// App settings functions
-export const getAppSetting = async (key: string) => {
+// App settings functions - Fixed to return proper string type
+export const getAppSetting = async (key: string): Promise<string> => {
   const { data, error } = await supabase
     .from('app_settings')
     .select('value')
     .eq('key', key)
     .single();
   if (error) throw error;
-  return data?.value;
+  
+  // Parse the JSON value and ensure it's a string
+  if (data?.value) {
+    if (typeof data.value === 'string') {
+      return data.value.replace(/^"|"$/g, ''); // Remove surrounding quotes if present
+    }
+    return JSON.stringify(data.value).replace(/^"|"$/g, '');
+  }
+  return '';
 };
 
 export const updateAppSetting = async (key: string, value: any) => {

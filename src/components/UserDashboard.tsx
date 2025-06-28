@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ShoppingBag, User, Star, MessageSquare, FileText, Palette, Megaphone, Coffee, Heart, Smartphone, Laptop, Globe, Video, Camera, Music } from 'lucide-react';
@@ -36,7 +35,7 @@ const UserDashboard = () => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     setCurrentUser(user);
     if (user.email) {
-      loadUserOrders(user.email);
+      loadUserOrders(user.email); // Fix: ensure email is passed as string
     }
   }, []);
 

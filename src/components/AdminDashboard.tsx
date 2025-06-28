@@ -43,13 +43,17 @@ const AdminDashboard = () => {
       // Load app settings
       const marqueTextData = await getAppSetting('marque_text');
       if (marqueTextData) {
-        setMarqueText(marqueTextData.replace(/"/g, ''));
+        setMarqueText(marqueTextData);
       }
 
       const promoData = await getAppSetting('promo_settings');
       if (promoData) {
-        const parsedPromo = typeof promoData === 'string' ? JSON.parse(promoData) : promoData;
-        setPromoSettings(parsedPromo);
+        try {
+          const parsedPromo = JSON.parse(promoData);
+          setPromoSettings(parsedPromo);
+        } catch (e) {
+          console.error('Error parsing promo settings:', e);
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error);

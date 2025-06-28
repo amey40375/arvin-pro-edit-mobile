@@ -10,7 +10,7 @@ const MarqueeText = () => {
       try {
         const marqueText = await getAppSetting('marque_text');
         if (marqueText) {
-          setText(marqueText.replace(/"/g, ''));
+          setText(marqueText);
         }
       } catch (error) {
         console.error('Error loading marquee text:', error);
