@@ -1,22 +1,34 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Gift } from 'lucide-react';
+import { getAppSetting } from '../utils/supabaseHelpers';
 
 const PromoPopup = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [promoSettings, setPromoSettings] = useState({ enabled: false, title: '', content: '', image: '' });
 
   useEffect(() => {
-    const settings = JSON.parse(localStorage.getItem('promoSettings') || '{"enabled":false,"title":"","content":"","image":""}');
-    setPromoSettings(settings);
+    const loadPromoSettings = async () => {
+      try {
+        const settings = await getAppSetting('promo_settings');
+        if (settings) {
+          const parsedSettings = typeof settings === 'string' ? JSON.parse(settings) : settings;
+          setPromoSettings(parsedSettings);
 
-    if (settings.enabled && settings.title && settings.content) {
-      const timer = setTimeout(() => {
-        setShowPopup(true);
-      }, 2000);
+          if (parsedSettings.enabled && parsedSettings.title && parsedSettings.content) {
+            const timer = setTimeout(() => {
+              setShowPopup(true);
+            }, 2000);
 
-      return () => clearTimeout(timer);
-    }
+            return () => clearTimeout(timer);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading promo settings:', error);
+      }
+    };
+
+    loadPromoSettings();
   }, []);
 
   if (!showPopup || !promoSettings.enabled) return null;

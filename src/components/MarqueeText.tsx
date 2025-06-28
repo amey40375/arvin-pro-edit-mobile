@@ -1,12 +1,23 @@
 
 import React, { useState, useEffect } from 'react';
+import { getAppSetting } from '../utils/supabaseHelpers';
 
 const MarqueeText = () => {
-  const [text, setText] = useState('');
+  const [text, setText] = useState('Selamat datang di ARVIN PROFESSIONAL EDITING - Layanan terbaik untuk kebutuhan editing Anda!');
 
   useEffect(() => {
-    const marqueText = localStorage.getItem('marqueText') || 'Selamat datang di ARVIN PROFESSIONAL EDITING - Layanan terbaik untuk kebutuhan editing Anda!';
-    setText(marqueText);
+    const loadMarqueeText = async () => {
+      try {
+        const marqueText = await getAppSetting('marque_text');
+        if (marqueText) {
+          setText(marqueText.replace(/"/g, ''));
+        }
+      } catch (error) {
+        console.error('Error loading marquee text:', error);
+      }
+    };
+
+    loadMarqueeText();
   }, []);
 
   return (

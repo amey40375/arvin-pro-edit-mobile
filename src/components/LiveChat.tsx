@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, X } from 'lucide-react';
+import { getChatMessages, createChatMessage } from '../utils/supabaseHelpers';
 
 interface LiveChatProps {
   onClose?: () => void;
@@ -24,7 +25,7 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
     scrollToBottom();
   }, [messages]);
 
-  // Auto-refresh messages every 2 seconds to get admin replies
+  // Auto-refresh messages every 2 seconds to sync with database
   useEffect(() => {
     const interval = setInterval(() => {
       loadMessages();
@@ -32,19 +33,23 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const loadMessages = () => {
-    const savedMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
-    
-    if (isAdmin) {
-      setMessages(savedMessages);
-    } else {
-      const currentUserEmail = JSON.parse(localStorage.getItem('currentUser') || '{}').email;
-      // Filter messages for current user and admin replies to this user
-      const userMessages = savedMessages.filter(msg => 
-        msg.senderEmail === currentUserEmail || 
-        (msg.isAdmin && msg.replyTo === currentUserEmail)
-      );
-      setMessages(userMessages);
+  const loadMessages = async () => {
+    try {
+      const allMessages = await getChatMessages();
+      
+      if (isAdmin) {
+        setMessages(allMessages);
+      } else {
+        const currentUserEmail = JSON.parse(localStorage.getItem('currentUser') || '{}').email;
+        // Filter messages for current user and admin replies to this user
+        const userMessages = allMessages.filter(msg => 
+          msg.sender_email === currentUserEmail || 
+          (msg.is_admin && msg.reply_to === currentUserEmail)
+        );
+        setMessages(userMessages);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
     }
   };
 
@@ -53,55 +58,49 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
   };
 
   const getUniqueUsers = () => {
-    const userEmails = [...new Set(messages.map(msg => msg.senderEmail).filter(email => email && !email.includes('admin')))];
+    const userEmails = [...new Set(messages.map(msg => msg.sender_email).filter(email => email && !email.includes('admin')))];
     return userEmails;
   };
 
   const getFilteredMessages = () => {
     if (!isAdmin || !selectedUserChat) return messages;
     return messages.filter(msg => 
-      msg.senderEmail === selectedUserChat || 
-      (msg.isAdmin && msg.replyTo === selectedUserChat)
+      msg.sender_email === selectedUserChat || 
+      (msg.is_admin && msg.reply_to === selectedUserChat)
     );
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    let message;
-    if (isAdmin) {
-      if (!selectedUserChat) return;
-      message = {
-        id: Date.now(),
-        text: newMessage,
-        sender: 'Admin ARVIN',
-        senderEmail: 'admin@arvin.com',
-        timestamp: new Date().toISOString(),
-        isAdmin: true,
-        replyTo: selectedUserChat
-      };
-    } else {
-      message = {
-        id: Date.now(),
-        text: newMessage,
-        sender: currentUser?.fullName || 'User',
-        senderEmail: currentUser?.email || '',
-        timestamp: new Date().toISOString(),
-        isAdmin: false
-      };
-    }
+    try {
+      let messageData;
+      if (isAdmin) {
+        if (!selectedUserChat) return;
+        messageData = {
+          text: newMessage,
+          sender: 'Admin ARVIN',
+          senderEmail: 'admin@arvin.com',
+          isAdmin: true,
+          replyTo: selectedUserChat
+        };
+      } else {
+        messageData = {
+          text: newMessage,
+          sender: currentUser?.full_name || currentUser?.fullName || 'User',
+          senderEmail: currentUser?.email || '',
+          isAdmin: false
+        };
+      }
 
-    const allMessages = JSON.parse(localStorage.getItem('chatMessages') || '[]');
-    const updatedMessages = [...allMessages, message];
-    localStorage.setItem('chatMessages', JSON.stringify(updatedMessages));
-    
-    // Update local state for immediate display
-    if (isAdmin) {
-      setMessages(updatedMessages);
-    } else {
-      setMessages(prev => [...prev, message]);
+      await createChatMessage(messageData);
+      setNewMessage('');
+      // Refresh messages immediately after sending
+      await loadMessages();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Gagal mengirim pesan. Silakan coba lagi.');
     }
-    setNewMessage('');
   };
 
   const handleKeyPress = (e) => {
@@ -164,7 +163,7 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
                   </div>
                 ) : (
                   getUniqueUsers().map((userEmail) => {
-                    const userMessages = messages.filter(msg => msg.senderEmail === userEmail);
+                    const userMessages = messages.filter(msg => msg.sender_email === userEmail);
                     const lastMessage = userMessages[userMessages.length - 1];
                     const userName = lastMessage?.sender || userEmail;
                     
@@ -178,7 +177,7 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
                       >
                         <div className="font-medium text-xs text-gray-800">{userName}</div>
                         <div className="text-xs text-gray-500 truncate">
-                          {lastMessage?.text || 'Belum ada pesan'}
+                          {lastMessage?.message || 'Belum ada pesan'}
                         </div>
                       </button>
                     );
@@ -194,7 +193,7 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
                   {/* Chat Header */}
                   <div className="p-3 border-b border-gray-200 bg-gray-50">
                     <h4 className="font-semibold text-gray-800 text-sm">
-                      Chat dengan {messages.find(msg => msg.senderEmail === selectedUserChat)?.sender || selectedUserChat}
+                      Chat dengan {messages.find(msg => msg.sender_email === selectedUserChat)?.sender || selectedUserChat}
                     </h4>
                   </div>
 
@@ -203,27 +202,27 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
                     {displayMessages.map((message) => (
                       <div
                         key={message.id}
-                        className={`flex ${message.isAdmin ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${message.is_admin ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
                           className={`max-w-xs px-3 py-2 rounded-xl text-sm ${
-                            message.isAdmin
+                            message.is_admin
                               ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                               : 'bg-white text-gray-800 shadow-sm border border-gray-200'
                           }`}
                         >
                           <div className="flex items-center space-x-1 mb-1">
                             <span className="text-xs font-semibold">
-                              {message.isAdmin ? 'Admin' : message.sender}
+                              {message.is_admin ? 'Admin' : message.sender}
                             </span>
-                            <span className={`text-xs ${message.isAdmin ? 'text-blue-100' : 'text-gray-500'}`}>
-                              {new Date(message.timestamp).toLocaleTimeString('id-ID', {
+                            <span className={`text-xs ${message.is_admin ? 'text-blue-100' : 'text-gray-500'}`}>
+                              {new Date(message.timestamp || message.created_at).toLocaleTimeString('id-ID', {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })}
                             </span>
                           </div>
-                          <p className="text-xs leading-relaxed">{message.text}</p>
+                          <p className="text-xs leading-relaxed">{message.message}</p>
                         </div>
                       </div>
                     ))}
@@ -274,27 +273,27 @@ const LiveChat: React.FC<LiveChatProps> = ({ onClose, isAdmin = false }) => {
                 displayMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.isAdmin ? 'justify-start' : 'justify-end'}`}
+                    className={`flex ${message.is_admin ? 'justify-start' : 'justify-end'}`}
                   >
                     <div
                       className={`max-w-xs px-4 py-2 rounded-2xl ${
-                        message.isAdmin
+                        message.is_admin
                           ? 'bg-white text-gray-800 shadow-sm border border-gray-200'
                           : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                       }`}
                     >
                       <div className="flex items-center space-x-2 mb-1">
                         <span className="text-xs font-semibold">
-                          {message.isAdmin ? 'Admin' : 'Anda'}
+                          {message.is_admin ? 'Admin' : 'Anda'}
                         </span>
-                        <span className={`text-xs ${message.isAdmin ? 'text-gray-500' : 'text-blue-100'}`}>
-                          {new Date(message.timestamp).toLocaleTimeString('id-ID', {
+                        <span className={`text-xs ${message.is_admin ? 'text-gray-500' : 'text-blue-100'}`}>
+                          {new Date(message.timestamp || message.created_at).toLocaleTimeString('id-ID', {
                             hour: '2-digit',
                             minute: '2-digit'
                           })}
                         </span>
                       </div>
-                      <p className="text-sm leading-relaxed">{message.text}</p>
+                      <p className="text-sm leading-relaxed">{message.message}</p>
                     </div>
                   </div>
                 ))

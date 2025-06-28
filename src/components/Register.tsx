@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Mail, Lock, Camera } from 'lucide-react';
+import { createUser, loginUser } from '../utils/supabaseHelpers';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -25,7 +26,7 @@ const Register = () => {
     }
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!formData.fullName || !formData.email || !formData.password) {
       alert('Harap isi semua field!');
       return;
@@ -33,38 +34,33 @@ const Register = () => {
 
     setLoading(true);
 
-    setTimeout(() => {
-      const pendingUsers = JSON.parse(localStorage.getItem('pendingUsers') || '[]');
-      
+    try {
       // Check if email already exists
-      const allUsers = [
-        ...pendingUsers,
-        ...JSON.parse(localStorage.getItem('approvedUsers') || '[]'),
-        ...JSON.parse(localStorage.getItem('rejectedUsers') || '[]')
-      ];
-
-      if (allUsers.some((u: any) => u.email === formData.email)) {
+      try {
+        await loginUser(formData.email, formData.password);
         alert('Email sudah terdaftar!');
         setLoading(false);
         return;
+      } catch {
+        // Email doesn't exist, continue with registration
       }
 
       const newUser = {
-        id: Date.now(),
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        profilePhoto: formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : null,
-        registrationDate: new Date().toISOString()
+        profilePhoto: formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : null
       };
 
-      pendingUsers.push(newUser);
-      localStorage.setItem('pendingUsers', JSON.stringify(pendingUsers));
-
+      await createUser(newUser);
       alert('Pendaftaran berhasil! Silakan tunggu persetujuan admin.');
       navigate('/login');
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Terjadi kesalahan saat mendaftar. Silakan coba lagi.');
+    }
+
+    setLoading(false);
   };
 
   return (

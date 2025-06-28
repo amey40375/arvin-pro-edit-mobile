@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ShoppingBag, User, Star, MessageSquare, FileText, Palette, Megaphone, Coffee, Heart, Smartphone, Laptop, Globe, Video, Camera, Music } from 'lucide-react';
@@ -5,6 +6,7 @@ import MarqueeText from './MarqueeText';
 import PromoPopup from './PromoPopup';
 import TestimonialSection from './TestimonialSection';
 import LiveChat from './LiveChat';
+import { createOrder, getOrdersByUser, getInvoiceByOrderId } from '../utils/supabaseHelpers';
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('services');
@@ -33,13 +35,18 @@ const UserDashboard = () => {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
     setCurrentUser(user);
-    loadUserOrders(user.email);
+    if (user.email) {
+      loadUserOrders(user.email);
+    }
   }, []);
 
-  const loadUserOrders = (userEmail: string) => {
-    const allOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-    const filteredOrders = allOrders.filter((order: any) => order.userEmail === userEmail);
-    setUserOrders(filteredOrders);
+  const loadUserOrders = async (userEmail: string) => {
+    try {
+      const orders = await getOrdersByUser(userEmail);
+      setUserOrders(orders);
+    } catch (error) {
+      console.error('Error loading orders:', error);
+    }
   };
 
   const handleServiceClick = (serviceName: string) => {
@@ -47,34 +54,35 @@ const UserDashboard = () => {
     setShowOrderForm(true);
   };
 
-  const handleOrderSubmit = () => {
+  const handleOrderSubmit = async () => {
     if (!orderDescription) {
       alert('Harap isi deskripsi pesanan!');
       return;
     }
 
-    const newOrder = {
-      id: Date.now(),
-      userName: currentUser.fullName,
-      userEmail: currentUser.email,
-      service: selectedService,
-      description: orderDescription,
-      file: orderFile ? URL.createObjectURL(orderFile) : null,
-      status: 'Menunggu',
-      createdAt: new Date().toISOString()
-    };
+    try {
+      const orderData = {
+        userName: currentUser.full_name || currentUser.fullName,
+        userEmail: currentUser.email,
+        service: selectedService,
+        description: orderDescription,
+        file: orderFile ? URL.createObjectURL(orderFile) : null
+      };
 
-    const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-    orders.push(newOrder);
-    localStorage.setItem('orders', JSON.stringify(orders));
+      await createOrder(orderData);
 
-    setShowOrderForm(false);
-    setOrderDescription('');
-    setOrderFile(null);
-    setSelectedService('');
-    
-    loadUserOrders(currentUser.email);
-    alert('Pesanan berhasil dikirim!');
+      setShowOrderForm(false);
+      setOrderDescription('');
+      setOrderFile(null);
+      setSelectedService('');
+      
+      // Reload orders
+      await loadUserOrders(currentUser.email);
+      alert('Pesanan berhasil dikirim!');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Gagal mengirim pesanan. Silakan coba lagi.');
+    }
   };
 
   const handleLogout = () => {
@@ -83,46 +91,51 @@ const UserDashboard = () => {
     navigate('/login');
   };
 
-  const viewInvoice = (orderId: number) => {
-    const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-    const invoice = invoices.find((inv: any) => inv.orderId === orderId);
-    
-    if (invoice) {
-      const invoiceWindow = window.open('', '_blank');
-      invoiceWindow?.document.write(`
-        <html>
-          <head>
-            <title>Invoice - ${invoice.invoiceNumber}</title>
-            <style>
-              body { font-family: Arial, sans-serif; padding: 20px; background: #f8fafc; }
-              .invoice-container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
-              .header h1 { color: #1e293b; margin-bottom: 5px; }
-              .header h2 { color: #64748b; }
-              .invoice-details { margin-bottom: 20px; }
-              .invoice-details p { margin: 10px 0; }
-              .total { font-size: 24px; font-weight: bold; color: #059669; text-align: center; background: #ecfdf5; padding: 15px; border-radius: 8px; }
-            </style>
-          </head>
-          <body>
-            <div class="invoice-container">
-              <div class="header">
-                <h1>ARVIN PROFESSIONAL EDITING</h1>
-                <h2>INVOICE</h2>
+  const viewInvoice = async (orderId: number) => {
+    try {
+      const invoice = await getInvoiceByOrderId(orderId);
+      const order = userOrders.find(o => o.id === orderId);
+      
+      if (invoice && order) {
+        const invoiceWindow = window.open('', '_blank');
+        invoiceWindow?.document.write(`
+          <html>
+            <head>
+              <title>Invoice - INV-${invoice.id}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; background: #f8fafc; }
+                .invoice-container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+                .header h1 { color: #1e293b; margin-bottom: 5px; }
+                .header h2 { color: #64748b; }
+                .invoice-details { margin-bottom: 20px; }
+                .invoice-details p { margin: 10px 0; }
+                .total { font-size: 24px; font-weight: bold; color: #059669; text-align: center; background: #ecfdf5; padding: 15px; border-radius: 8px; }
+              </style>
+            </head>
+            <body>
+              <div class="invoice-container">
+                <div class="header">
+                  <h1>ARVIN PROFESSIONAL EDITING</h1>
+                  <h2>INVOICE</h2>
+                </div>
+                <div class="invoice-details">
+                  <p><strong>Nomor Invoice:</strong> INV-${invoice.id}</p>
+                  <p><strong>Nama:</strong> ${order.user_name}</p>
+                  <p><strong>Jenis Jasa:</strong> ${order.service}</p>
+                  <p><strong>Tanggal:</strong> ${new Date(invoice.created_at).toLocaleDateString('id-ID')}</p>
+                </div>
+                <div class="total">
+                  <strong>Total Harga: Rp ${parseInt(invoice.amount).toLocaleString('id-ID')}</strong>
+                </div>
               </div>
-              <div class="invoice-details">
-                <p><strong>Nomor Invoice:</strong> ${invoice.invoiceNumber}</p>
-                <p><strong>Nama:</strong> ${invoice.userName}</p>
-                <p><strong>Jenis Jasa:</strong> ${invoice.service}</p>
-                <p><strong>Tanggal:</strong> ${new Date(invoice.date).toLocaleDateString('id-ID')}</p>
-              </div>
-              <div class="total">
-                <strong>Total Harga: Rp ${parseInt(invoice.price).toLocaleString('id-ID')}</strong>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
+            </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error('Error viewing invoice:', error);
+      alert('Invoice tidak ditemukan.');
     }
   };
 
@@ -136,7 +149,6 @@ const UserDashboard = () => {
       
       {/* Enhanced Header with Animation */}
       <div className="relative bg-gradient-to-r from-blue-600 via-blue-700 to-purple-600 overflow-hidden">
-        {/* Animated Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
           <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
@@ -149,10 +161,9 @@ const UserDashboard = () => {
               <h1 className="text-2xl font-bold text-white drop-shadow-lg">
                 ARVIN PROFESSIONAL
               </h1>
-              <p className="text-blue-100 mt-1 font-medium">Halo, {currentUser?.fullName}!</p>
+              <p className="text-blue-100 mt-1 font-medium">Halo, {currentUser?.full_name || currentUser?.fullName}!</p>
             </div>
             
-            {/* Live Chat Button */}
             <button
               onClick={() => setShowLiveChat(true)}
               className="mr-3 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-all duration-300 shadow-lg"
@@ -171,7 +182,6 @@ const UserDashboard = () => {
         </div>
       </div>
 
-      {/* Marquee Text */}
       <MarqueeText />
 
       {/* Navigation */}
@@ -202,7 +212,6 @@ const UserDashboard = () => {
       <div className="p-4 pb-20">
         {activeTab === 'services' && (
           <div className="space-y-6">
-            {/* Services Grid */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-6 text-center">Pilih Layanan Kami</h2>
               <div className="grid grid-cols-2 gap-4">
@@ -223,8 +232,6 @@ const UserDashboard = () => {
                 ))}
               </div>
             </div>
-
-            {/* Testimonials */}
             <TestimonialSection />
           </div>
         )}
@@ -245,16 +252,18 @@ const UserDashboard = () => {
                       <div>
                         <h3 className="font-semibold text-gray-800">{order.service}</h3>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(order.createdAt).toLocaleDateString('id-ID')}
+                          {new Date(order.created_at).toLocaleDateString('id-ID')}
                         </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'Menunggu' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'Sedang Dikerjakan' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {order.status}
+                        {order.status === 'pending' ? 'Menunggu' :
+                         order.status === 'in_progress' ? 'Sedang Dikerjakan' :
+                         order.status === 'completed' ? 'Selesai' : 'Ditolak'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 mb-3">{order.description}</p>
@@ -263,7 +272,7 @@ const UserDashboard = () => {
                         Harga: Rp {parseInt(order.price).toLocaleString('id-ID')}
                       </p>
                     )}
-                    {order.status === 'Selesai' && (
+                    {order.status === 'completed' && (
                       <button
                         onClick={() => viewInvoice(order.id)}
                         className="modern-button text-sm py-2 px-4"
@@ -282,10 +291,10 @@ const UserDashboard = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-6">Profil Saya</h2>
             <div className="flex items-center space-x-4 mb-6">
-              {currentUser?.profilePhoto ? (
+              {currentUser?.profile_photo || currentUser?.profilePhoto ? (
                 <img
-                  src={currentUser.profilePhoto}
-                  alt={currentUser.fullName}
+                  src={currentUser.profile_photo || currentUser.profilePhoto}
+                  alt={currentUser.full_name || currentUser.fullName}
                   className="w-20 h-20 rounded-full object-cover border-4 border-blue-100"
                 />
               ) : (
@@ -294,15 +303,11 @@ const UserDashboard = () => {
                 </div>
               )}
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">{currentUser?.fullName}</h3>
+                <h3 className="text-lg font-semibold text-gray-800">{currentUser?.full_name || currentUser?.fullName}</h3>
                 <p className="text-gray-600">{currentUser?.email}</p>
               </div>
             </div>
           </div>
-        )}
-
-        {activeTab === 'chat' && (
-          <LiveChat />
         )}
       </div>
 
@@ -348,7 +353,6 @@ const UserDashboard = () => {
         </div>
       )}
 
-      {/* Live Chat Popup */}
       {showLiveChat && (
         <LiveChat onClose={() => setShowLiveChat(false)} />
       )}

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { loginUser } from '../utils/supabaseHelpers';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       alert('Harap isi semua field!');
       return;
@@ -18,46 +19,36 @@ const Login = () => {
 
     setLoading(true);
 
-    setTimeout(() => {
+    try {
       // Admin login
       if (email === 'id.arvinstudio@gmail.com' && password === 'Bandung123') {
         localStorage.setItem('userRole', 'admin');
         localStorage.setItem('currentUser', JSON.stringify({ email, role: 'admin' }));
         navigate('/admin-dashboard');
-      } else {
-        // Check approved users
-        const approvedUsers = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
-        const user = approvedUsers.find((u: any) => u.email === email && u.password === password);
+        return;
+      }
 
-        if (user) {
-          localStorage.setItem('userRole', 'user');
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          navigate('/user-dashboard');
-        } else {
-          // Check if user is pending
-          const pendingUsers = JSON.parse(localStorage.getItem('pendingUsers') || '[]');
-          const pendingUser = pendingUsers.find((u: any) => u.email === email && u.password === password);
-
-          if (pendingUser) {
-            alert('Mohon Bersabar Karena Admin Sedang Memeriksa Permintaan Kamu Terlebih Dahulu.');
-          } else {
-            // Check if user is rejected
-            const rejectedUsers = JSON.parse(localStorage.getItem('rejectedUsers') || '[]');
-            const rejectedUser = rejectedUsers.find((u: any) => u.email === email && u.password === password);
-
-            if (rejectedUser) {
-              const whatsappUrl = `https://wa.me/6281299660660?text=Halo, saya ingin menanyakan status pendaftaran saya.`;
-              if (confirm('Maaf, pendaftaran kamu ditolak. Silakan hubungi admin via WhatsApp.')) {
-                window.open(whatsappUrl, '_blank');
-              }
-            } else {
-              alert('Login gagal! Email atau password salah.');
-            }
-          }
+      // Check user in database
+      const user = await loginUser(email, password);
+      
+      if (user.status === 'approved') {
+        localStorage.setItem('userRole', 'user');
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        navigate('/user-dashboard');
+      } else if (user.status === 'pending') {
+        alert('Mohon Bersabar Karena Admin Sedang Memeriksa Permintaan Kamu Terlebih Dahulu.');
+      } else if (user.status === 'rejected') {
+        const whatsappUrl = `https://wa.me/6281299660660?text=Halo, saya ingin menanyakan status pendaftaran saya.`;
+        if (confirm('Maaf, pendaftaran kamu ditolak. Silakan hubungi admin via WhatsApp.')) {
+          window.open(whatsappUrl, '_blank');
         }
       }
-      setLoading(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login gagal! Email atau password salah.');
+    }
+
+    setLoading(false);
   };
 
   return (

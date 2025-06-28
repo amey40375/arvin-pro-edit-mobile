@@ -9,12 +9,37 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          key: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          id?: number
+          key: string
+          updated_at?: string | null
+          value: Json
+        }
+        Update: {
+          id?: number
+          key?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           created_at: string | null
           id: number
           is_admin: boolean
           message: string
+          reply_to: string | null
+          sender: string | null
+          sender_email: string | null
+          timestamp: string | null
           user_email: string | null
           user_id: number | null
           user_name: string | null
@@ -24,6 +49,10 @@ export type Database = {
           id?: number
           is_admin?: boolean
           message: string
+          reply_to?: string | null
+          sender?: string | null
+          sender_email?: string | null
+          timestamp?: string | null
           user_email?: string | null
           user_id?: number | null
           user_name?: string | null
@@ -33,6 +62,10 @@ export type Database = {
           id?: number
           is_admin?: boolean
           message?: string
+          reply_to?: string | null
+          sender?: string | null
+          sender_email?: string | null
+          timestamp?: string | null
           user_email?: string | null
           user_id?: number | null
           user_name?: string | null
@@ -98,6 +131,7 @@ export type Database = {
           price: number | null
           service: string
           status: string
+          updated_at: string | null
           user_email: string
           user_id: number | null
           user_name: string
@@ -110,6 +144,7 @@ export type Database = {
           price?: number | null
           service: string
           status?: string
+          updated_at?: string | null
           user_email: string
           user_id?: number | null
           user_name: string
@@ -122,6 +157,7 @@ export type Database = {
           price?: number | null
           service?: string
           status?: string
+          updated_at?: string | null
           user_email?: string
           user_id?: number | null
           user_name?: string
@@ -165,6 +201,7 @@ export type Database = {
           id: number
           password: string
           profile_photo: string | null
+          registration_date: string | null
           status: string
         }
         Insert: {
@@ -174,6 +211,7 @@ export type Database = {
           id?: number
           password: string
           profile_photo?: string | null
+          registration_date?: string | null
           status?: string
         }
         Update: {
@@ -183,6 +221,7 @@ export type Database = {
           id?: number
           password?: string
           profile_photo?: string | null
+          registration_date?: string | null
           status?: string
         }
         Relationships: []

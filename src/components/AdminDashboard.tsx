@@ -1,7 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ShoppingBag, Settings, LogOut, Check, X, MessageSquare, Edit, Send } from 'lucide-react';
+import { Users, ShoppingBag, Settings, LogOut, Check, X, MessageSquare, Edit } from 'lucide-react';
 import LiveChat from './LiveChat';
+import { 
+  getUsersByStatus, 
+  updateUserStatus, 
+  getAllOrders, 
+  updateOrderStatus, 
+  createInvoice,
+  getAppSetting,
+  updateAppSetting
+} from '../utils/supabaseHelpers';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
@@ -21,102 +30,119 @@ const AdminDashboard = () => {
     loadData();
   }, []);
 
-  const loadData = () => {
-    setPendingUsers(JSON.parse(localStorage.getItem('pendingUsers') || '[]'));
-    setOrders(JSON.parse(localStorage.getItem('orders') || '[]'));
-    setMarqueText(localStorage.getItem('marqueText') || 'Selamat datang di ARVIN PROFESSIONAL EDITING - Layanan terbaik untuk kebutuhan editing Anda!');
-    setPromoSettings(JSON.parse(localStorage.getItem('promoSettings') || '{"enabled":false,"title":"","content":"","image":""}'));
-  };
+  const loadData = async () => {
+    try {
+      // Load pending users
+      const pending = await getUsersByStatus('pending');
+      setPendingUsers(pending);
 
-  const handleUserAction = (userId: number, action: 'approve' | 'reject') => {
-    const pending = JSON.parse(localStorage.getItem('pendingUsers') || '[]');
-    const user = pending.find((u: any) => u.id === userId);
-    
-    if (user) {
-      const updatedPending = pending.filter((u: any) => u.id !== userId);
-      localStorage.setItem('pendingUsers', JSON.stringify(updatedPending));
+      // Load all orders
+      const allOrders = await getAllOrders();
+      setOrders(allOrders);
 
-      if (action === 'approve') {
-        const approved = JSON.parse(localStorage.getItem('approvedUsers') || '[]');
-        approved.push(user);
-        localStorage.setItem('approvedUsers', JSON.stringify(approved));
-      } else {
-        const rejected = JSON.parse(localStorage.getItem('rejectedUsers') || '[]');
-        rejected.push(user);
-        localStorage.setItem('rejectedUsers', JSON.stringify(rejected));
+      // Load app settings
+      const marqueTextData = await getAppSetting('marque_text');
+      if (marqueTextData) {
+        setMarqueText(marqueTextData.replace(/"/g, ''));
       }
 
-      loadData();
+      const promoData = await getAppSetting('promo_settings');
+      if (promoData) {
+        const parsedPromo = typeof promoData === 'string' ? JSON.parse(promoData) : promoData;
+        setPromoSettings(parsedPromo);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
     }
   };
 
-  const handleOrderStatus = (orderId: number, status: string) => {
-    if (status === 'Sedang Dikerjakan') {
+  const handleUserAction = async (userId: number, action: 'approve' | 'reject') => {
+    try {
+      const newStatus = action === 'approve' ? 'approved' : 'rejected';
+      await updateUserStatus(userId, newStatus);
+      await loadData(); // Reload data
+    } catch (error) {
+      console.error('Error updating user status:', error);
+      alert('Gagal memperbarui status user.');
+    }
+  };
+
+  const handleOrderStatus = async (orderId: number, status: string) => {
+    if (status === 'in_progress') {
       setSelectedOrder(orderId);
       setShowPriceModal(true);
       return;
     }
 
-    const updatedOrders = orders.map((order: any) => 
-      order.id === orderId ? { ...order, status, updatedAt: new Date().toISOString() } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
+    try {
+      await updateOrderStatus(orderId, status);
+      await loadData(); // Reload data
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      alert('Gagal memperbarui status pesanan.');
+    }
   };
 
-  const handlePriceSubmit = () => {
+  const handlePriceSubmit = async () => {
     if (!priceInput) {
       alert('Harap masukkan harga!');
       return;
     }
 
-    const updatedOrders = orders.map((order: any) => 
-      order.id === selectedOrder ? { 
-        ...order, 
-        status: 'Sedang Dikerjakan', 
-        price: priceInput,
-        updatedAt: new Date().toISOString()
-      } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
-    
-    setShowPriceModal(false);
-    setPriceInput('');
-    setSelectedOrder(null);
-  };
-
-  const handleCompleteOrder = (orderId: number) => {
-    const order = orders.find((o: any) => o.id === orderId);
-    if (order) {
-      const invoice = {
-        id: Date.now(),
-        orderId: order.id,
-        userName: order.userName,
-        service: order.service,
-        price: order.price,
-        date: new Date().toISOString(),
-        invoiceNumber: `INV-${Date.now()}`
-      };
-
-      const invoices = JSON.parse(localStorage.getItem('invoices') || '[]');
-      invoices.push(invoice);
-      localStorage.setItem('invoices', JSON.stringify(invoices));
-
-      handleOrderStatus(orderId, 'Selesai');
+    try {
+      await updateOrderStatus(selectedOrder, 'in_progress', priceInput);
+      await loadData(); // Reload data
+      
+      setShowPriceModal(false);
+      setPriceInput('');
+      setSelectedOrder(null);
+    } catch (error) {
+      console.error('Error updating order with price:', error);
+      alert('Gagal memperbarui pesanan.');
     }
   };
 
-  const saveMarqueText = () => {
-    localStorage.setItem('marqueText', marqueText);
-    setShowMarqueEdit(false);
-    alert('Teks berjalan berhasil diperbarui!');
+  const handleCompleteOrder = async (orderId: number) => {
+    try {
+      const order = orders.find((o: any) => o.id === orderId);
+      if (order) {
+        // Create invoice
+        await createInvoice({
+          orderId: order.id,
+          userId: order.user_id,
+          price: order.price
+        });
+
+        // Update order status to completed
+        await updateOrderStatus(orderId, 'completed');
+        await loadData(); // Reload data
+      }
+    } catch (error) {
+      console.error('Error completing order:', error);
+      alert('Gagal menyelesaikan pesanan.');
+    }
   };
 
-  const savePromoSettings = () => {
-    localStorage.setItem('promoSettings', JSON.stringify(promoSettings));
-    setShowPromoEdit(false);
-    alert('Pengaturan promo berhasil disimpan!');
+  const saveMarqueText = async () => {
+    try {
+      await updateAppSetting('marque_text', marqueText);
+      setShowMarqueEdit(false);
+      alert('Teks berjalan berhasil diperbarui!');
+    } catch (error) {
+      console.error('Error saving marquee text:', error);
+      alert('Gagal menyimpan teks berjalan.');
+    }
+  };
+
+  const savePromoSettings = async () => {
+    try {
+      await updateAppSetting('promo_settings', promoSettings);
+      setShowPromoEdit(false);
+      alert('Pengaturan promo berhasil disimpan!');
+    } catch (error) {
+      console.error('Error saving promo settings:', error);
+      alert('Gagal menyimpan pengaturan promo.');
+    }
   };
 
   const handleLogout = () => {
@@ -198,18 +224,18 @@ const AdminDashboard = () => {
                 {pendingUsers.map((user: any) => (
                   <div key={user.id} className="border rounded-lg p-4 flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      {user.profilePhoto && (
+                      {user.profile_photo && (
                         <img
-                          src={user.profilePhoto}
-                          alt={user.fullName}
+                          src={user.profile_photo}
+                          alt={user.full_name}
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       )}
                       <div>
-                        <h3 className="font-medium">{user.fullName}</h3>
+                        <h3 className="font-medium">{user.full_name}</h3>
                         <p className="text-sm text-gray-500">{user.email}</p>
                         <p className="text-xs text-gray-400">
-                          Daftar: {new Date(user.registrationDate).toLocaleDateString('id-ID')}
+                          Daftar: {new Date(user.registration_date || user.created_at).toLocaleDateString('id-ID')}
                         </p>
                       </div>
                     </div>
@@ -247,19 +273,21 @@ const AdminDashboard = () => {
                   <div key={order.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-medium">{order.userName}</h3>
+                        <h3 className="font-medium">{order.user_name}</h3>
                         <p className="text-sm text-gray-600">{order.service}</p>
                         <p className="text-xs text-gray-400">
-                          {new Date(order.createdAt).toLocaleDateString('id-ID')}
+                          {new Date(order.created_at).toLocaleDateString('id-ID')}
                         </p>
                       </div>
                       <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        order.status === 'Menunggu' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'Sedang Dikerjakan' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {order.status}
+                        {order.status === 'pending' ? 'Menunggu' :
+                         order.status === 'in_progress' ? 'Sedang Dikerjakan' :
+                         order.status === 'completed' ? 'Selesai' : 'Ditolak'}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 mb-3">{order.description}</p>
@@ -270,18 +298,18 @@ const AdminDashboard = () => {
                     )}
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleOrderStatus(order.id, 'Ditolak')}
+                        onClick={() => handleOrderStatus(order.id, 'rejected')}
                         className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
                       >
                         Tolak
                       </button>
                       <button
-                        onClick={() => handleOrderStatus(order.id, 'Sedang Dikerjakan')}
+                        onClick={() => handleOrderStatus(order.id, 'in_progress')}
                         className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
                       >
                         Kerjakan
                       </button>
-                      {order.status === 'Sedang Dikerjakan' && (
+                      {order.status === 'in_progress' && (
                         <button
                           onClick={() => handleCompleteOrder(order.id)}
                           className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors"
