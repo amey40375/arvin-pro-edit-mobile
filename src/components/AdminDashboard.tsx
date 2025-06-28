@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, ShoppingBag, Settings, LogOut, Check, X, MessageSquare, Edit } from 'lucide-react';
@@ -64,45 +65,55 @@ const AdminDashboard = () => {
     try {
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
       await updateUserStatus(userId, newStatus);
-      await loadData(); // Reload data
+      await loadData();
     } catch (error) {
       console.error('Error updating user status:', error);
       alert('Gagal memperbarui status user.');
     }
   };
 
-  const handleOrderStatus = async (orderId: number, status: string) => {
-    if (status === 'in_progress') {
-      setSelectedOrder(orderId);
-      setShowPriceModal(true);
-      return;
-    }
+  const handleAcceptOrder = async (orderId: number) => {
+    setSelectedOrder(orderId);
+    setShowPriceModal(true);
+  };
 
+  const handleRejectOrder = async (orderId: number) => {
     try {
-      await updateOrderStatus(orderId, status);
-      await loadData(); // Reload data
+      await updateOrderStatus(orderId, 'rejected');
+      await loadData();
     } catch (error) {
-      console.error('Error updating order status:', error);
-      alert('Gagal memperbarui status pesanan.');
+      console.error('Error rejecting order:', error);
+      alert('Gagal menolak pesanan.');
     }
   };
 
-  const handlePriceSubmit = async () => {
-    if (!priceInput) {
+  const handleApplyPrice = async () => {
+    if (!priceInput || !selectedOrder) {
       alert('Harap masukkan harga!');
       return;
     }
 
     try {
-      await updateOrderStatus(selectedOrder, 'in_progress', priceInput);
-      await loadData(); // Reload data
+      await updateOrderStatus(selectedOrder, 'accepted', priceInput);
+      await loadData();
       
       setShowPriceModal(false);
       setPriceInput('');
       setSelectedOrder(null);
+      alert('Pesanan diterima dengan harga yang ditetapkan!');
     } catch (error) {
-      console.error('Error updating order with price:', error);
-      alert('Gagal memperbarui pesanan.');
+      console.error('Error accepting order with price:', error);
+      alert('Gagal menerima pesanan.');
+    }
+  };
+
+  const handleStartWork = async (orderId: number) => {
+    try {
+      await updateOrderStatus(orderId, 'in_progress');
+      await loadData();
+    } catch (error) {
+      console.error('Error starting work:', error);
+      alert('Gagal memulai pekerjaan.');
     }
   };
 
@@ -119,7 +130,7 @@ const AdminDashboard = () => {
 
         // Update order status to completed
         await updateOrderStatus(orderId, 'completed');
-        await loadData(); // Reload data
+        await loadData();
       }
     } catch (error) {
       console.error('Error completing order:', error);
@@ -153,6 +164,28 @@ const AdminDashboard = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUser');
     navigate('/login');
+  };
+
+  const getOrderStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Menunggu';
+      case 'accepted': return 'Diterima';
+      case 'in_progress': return 'Sedang Dikerjakan';
+      case 'completed': return 'Selesai';
+      case 'rejected': return 'Ditolak';
+      default: return status;
+    }
+  };
+
+  const getOrderStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'completed': return 'bg-purple-100 text-purple-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -192,7 +225,7 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Smaller Navigation Tabs */}
+      {/* Navigation Tabs */}
       <div className="bg-white border-b shadow-sm">
         <div className="flex space-x-2 px-4 py-2 overflow-x-auto">
           {[
@@ -283,15 +316,8 @@ const AdminDashboard = () => {
                           {new Date(order.created_at).toLocaleDateString('id-ID')}
                         </p>
                       </div>
-                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        order.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {order.status === 'pending' ? 'Menunggu' :
-                         order.status === 'in_progress' ? 'Sedang Dikerjakan' :
-                         order.status === 'completed' ? 'Selesai' : 'Ditolak'}
+                      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getOrderStatusColor(order.status)}`}>
+                        {getOrderStatusText(order.status)}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 mb-3">{order.description}</p>
@@ -301,22 +327,34 @@ const AdminDashboard = () => {
                       </p>
                     )}
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleOrderStatus(order.id, 'rejected')}
-                        className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
-                      >
-                        Tolak
-                      </button>
-                      <button
-                        onClick={() => handleOrderStatus(order.id, 'in_progress')}
-                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
-                      >
-                        Kerjakan
-                      </button>
+                      {order.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleAcceptOrder(order.id)}
+                            className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors"
+                          >
+                            Terima
+                          </button>
+                          <button
+                            onClick={() => handleRejectOrder(order.id)}
+                            className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 transition-colors"
+                          >
+                            Tolak
+                          </button>
+                        </>
+                      )}
+                      {order.status === 'accepted' && (
+                        <button
+                          onClick={() => handleStartWork(order.id)}
+                          className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+                        >
+                          Mulai Kerjakan
+                        </button>
+                      )}
                       {order.status === 'in_progress' && (
                         <button
                           onClick={() => handleCompleteOrder(order.id)}
-                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 transition-colors"
+                          className="bg-purple-500 text-white px-3 py-1 rounded text-sm hover:bg-purple-600 transition-colors"
                         >
                           Selesai
                         </button>
@@ -444,7 +482,7 @@ const AdminDashboard = () => {
       {showPriceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">Masukkan Harga</h3>
+            <h3 className="text-lg font-semibold mb-4">Masukkan Tarif Harga</h3>
             <input
               type="number"
               placeholder="Masukkan harga dalam Rupiah"
@@ -454,10 +492,10 @@ const AdminDashboard = () => {
             />
             <div className="flex space-x-2">
               <button
-                onClick={handlePriceSubmit}
-                className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                onClick={handleApplyPrice}
+                className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors"
               >
-                Simpan
+                Terapkan
               </button>
               <button
                 onClick={() => {
